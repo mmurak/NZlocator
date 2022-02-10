@@ -1,0 +1,137 @@
+<html>
+  <head>
+    <title>New Zealand Place Finder</title>
+    <link rel="shortcut icon" href="kiwi-bird.png">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script src="./db.js"></script>
+    <style>
+    .wrap1{
+        position: absolute;
+        overflow: hidden;
+        z-index: 2;
+    }
+    .wrap2{
+        z-index: 1;
+    }
+    </style>
+    </head>
+    <body>
+      <div class="control">
+        <input type="text" id="EntryField" size="60" autocomplete="off" spellcheck="false"/>
+        <input type="button" value="Clear" onclick="clearField();"/>
+      </div>
+      <div style="position:absolute;left:520px">
+        <div id="OutField" class="msg"></div>
+      </div>
+      <div class="wrappter">
+        <div class="wrap1">
+          <canvas id="CanvasArea" width="500" height="630"/>
+        </div>
+        <div class="wrap2">
+          <img src="./nzmap.jpg"/ width="500">
+        </div>
+      </div>
+      <script>
+      const entryField = document.getElementById("EntryField");
+      const canvasArea = document.getElementById("CanvasArea");
+      const outField = document.getElementById("OutField");
+
+      database.unshift(["", "", 0, 0]);         // front sentinel
+      database.pop(["ZZZZZZZZZZ", "", 0, 0]);   // back sentinel
+
+      const widthPx = canvasArea.width;
+      const heightPx = canvasArea.height;
+      const ctx = canvasArea.getContext("2d");
+      clearField();
+
+      const longitudeMin = 165.6;
+      const longitudeMax = 179.4;
+      const rangeLongitude = longitudeMax - longitudeMin;
+      const latitudeMax = -34.0;
+      const latitudeMin = -48.3;
+      const rangeLatitude = latitudeMax - latitudeMin;
+
+      entryField.focus();
+
+      function plotPlace(longitude, latitude, colour) {
+        let deltaLongitude = longitude - longitudeMin;
+        console.log(deltaLongitude / rangeLongitude);
+        let deltaLatitude = Math.abs(latitude - latitudeMax);
+        let coordX = Math.trunc(deltaLongitude * widthPx / rangeLongitude);
+        let coordY = Math.trunc(deltaLatitude * heightPx / rangeLatitude);
+//        console.log("LO:" + longitude + "  LA:" + latitude);
+//        console.log("X:" + coordX + "  Y:" + coordY);
+        ctx.strokeStyle = colour;
+        ctx.fillStyle = colour;
+        ctx.lineWidth = 3;
+        ctx.beginPath()
+        ctx.arc(coordX, coordY, 2, 0, 2 * Math.PI, false);
+        ctx.stroke();
+      }
+
+      function getData(target) {
+        if (target.length == 0) return [];
+        let i = 0;
+        while (target > database[i][0]) {
+          i++;
+        }
+        let j = i + 1;
+        while (target == database[j][0].substr(0, target.length)) {
+            j++;
+        }
+        return database.slice(i, j);
+      }
+
+      entryField.addEventListener("input", function() {
+        let target = entryField.value.toUpperCase();
+        result = getData(target);
+        console.log(result.length);
+        clearCanvas();
+        outField.innerHTML = result.length + "<br/>";
+        if (result.length <= 100) {
+          for (let i = 0; i < result.length; i++) {
+              if ((result[i][2] > latitudeMax) || (result[i][2] < latitudeMin) ||
+                (result[i][3] > longitudeMax) || (result[i][3] < longitudeMin)) {
+                  continue;
+              }
+              outField.innerHTML += result[i][0] + " (" + result[i][1] + ") "+ result[i][2] + "/" + result[i][3] + "<br/>";
+              if (result[i][0] != target) {
+                plotPlace(result[i][3], result[i][2], "rgb(0, 0, 255)");
+              }
+          }
+          for (let i = 0; i < result.length; i++) {
+              if (result[i][0] == target) {
+                plotPlace(result[i][3], result[i][2], "rgb(255, 0, 0)");
+              }
+          }
+        }
+      });
+
+
+    document.addEventListener("keydown", function(evt) {
+      let activeElem = document.activeElement;
+      switch (evt.key) {
+        case "Escape" :
+          clearField();
+          break;
+        default :
+      }
+    }, false);
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, widthPx, heightPx);
+      ctx.strokeStyle = "rgb(0, 0, 0)";
+      ctx.strokeRect(0, 0, widthPx, heightPx);
+    }
+
+    function clearField() {
+      entryField.value = "";
+      clearCanvas();
+      outField.innerHTML = "";
+      entryField.focus();
+    }
+      </script>
+    </body>
+</html>
+
