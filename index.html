@@ -57,8 +57,9 @@
         });
 
         canvasArea.addEventListener("mousedown", function(evt) {
-            let x = evt.pageX;
-            let y = evt.pageY;
+            const rect = evt.target.getBoundingClientRect();
+            let x = evt.clientX - rect.left;
+            let y = evt.clientY - rect.top;
             let idx = 0;
             let distance = 99999.0;
             for (let c = 0; c < gResult.length; c++) {
