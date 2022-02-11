@@ -113,7 +113,9 @@
       let activeElem = document.activeElement;
       switch (evt.key) {
         case "Escape" :
+        case "/" :
           clearField();
+          evt.preventDefault();
           break;
         default :
       }
