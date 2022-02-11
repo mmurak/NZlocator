@@ -33,106 +33,129 @@
         </div>
       </div>
       <script>
-      const entryField = document.getElementById("EntryField");
-      const canvasArea = document.getElementById("CanvasArea");
-      const outField = document.getElementById("OutField");
+        const entryField = document.getElementById("EntryField");
+        const canvasArea = document.getElementById("CanvasArea");
+        const outField = document.getElementById("OutField");
 
-      database.unshift(["", "", 0, 0]);         // front sentinel
-      database.pop(["ZZZZZZZZZZ", "", 0, 0]);   // back sentinel
+        database.unshift(["", "", 0, 0]);         // front sentinel
+        database.pop(["ZZZZZZZZZZ", "", 0, 0]);   // back sentinel
 
-      const widthPx = canvasArea.width;
-      const heightPx = canvasArea.height;
-      const ctx = canvasArea.getContext("2d");
-      clearField();
+        const widthPx = canvasArea.width;
+        const heightPx = canvasArea.height;
+        const ctx = canvasArea.getContext("2d");
+        clearField();
 
-      const longitudeMin = 165.6;
-      const longitudeMax = 179.4;
-      const rangeLongitude = longitudeMax - longitudeMin;
-      const latitudeMax = -34.0;
-      const latitudeMin = -48.3;
-      const rangeLatitude = latitudeMax - latitudeMin;
+        const longitudeMin = 165.6;
+        const longitudeMax = 179.4;
+        const rangeLongitude = longitudeMax - longitudeMin;
+        const latitudeMax = -34.0;
+        const latitudeMin = -48.3;
+        const rangeLatitude = latitudeMax - latitudeMin;
 
-      entryField.focus();
+        window.addEventListener("focus", function () {
+            entryField.focus();
+        });
 
-      function plotPlace(longitude, latitude, colour) {
-        let deltaLongitude = longitude - longitudeMin;
-        console.log(deltaLongitude / rangeLongitude);
-        let deltaLatitude = Math.abs(latitude - latitudeMax);
-        let coordX = Math.trunc(deltaLongitude * widthPx / rangeLongitude);
-        let coordY = Math.trunc(deltaLatitude * heightPx / rangeLatitude);
-//        console.log("LO:" + longitude + "  LA:" + latitude);
-//        console.log("X:" + coordX + "  Y:" + coordY);
-        ctx.strokeStyle = colour;
-        ctx.fillStyle = colour;
-        ctx.lineWidth = 3;
-        ctx.beginPath()
-        ctx.arc(coordX, coordY, 2, 0, 2 * Math.PI, false);
-        ctx.stroke();
-      }
+        canvasArea.addEventListener("mousedown", function(evt) {
+            let x = evt.pageX;
+            let y = evt.pageY;
+            let idx = 0;
+            let distance = 99999.0;
+            for (let c = 0; c < gResult.length; c++) {
+                let deltaX = Math.abs(gResult[c][2] - x);
+                let deltaY = Math.abs(gResult[c][3] - y);
+                let dist = Math.sqrt(deltaX ** 2 + deltaY ** 2);
+                if (dist < distance) {
+                    distance = dist;
+                    idx = c;
+                }
+            }
+            alert(gResult[idx][0] + "(" + gResult[idx][1] + ")");
+        });
 
-      function getData(target) {
-        if (target.length == 0) return [];
-        let i = 0;
-        while (target > database[i][0]) {
-          i++;
+        entryField.focus();
+
+        function plotPlace(longitude, latitude, colour) {
+            let deltaLongitude = longitude - longitudeMin;
+            let deltaLatitude = Math.abs(latitude - latitudeMax);
+            let coordX = Math.trunc(deltaLongitude * widthPx / rangeLongitude);
+            let coordY = Math.trunc(deltaLatitude * heightPx / rangeLatitude);
+            ctx.strokeStyle = colour;
+            ctx.fillStyle = colour;
+            ctx.lineWidth = 3;
+            ctx.beginPath()
+            ctx.arc(coordX, coordY, 2, 0, 2 * Math.PI, false);
+            ctx.stroke();
+            return [coordX, coordY];
         }
-        let j = i;
-        while (target == database[j][0].substr(0, target.length)) {
-            j++;
+
+        function getData(target) {
+            if (target.length == 0) return [];
+            let i = 0;
+            while (target > database[i][0]) {
+                i++;
+            }
+            let j = i;
+            while (target == database[j][0].substr(0, target.length)) {
+                j++;
+            }
+            return database.slice(i, j);
         }
-        return database.slice(i, j);
-      }
 
-      entryField.addEventListener("input", function() {
-        let target = entryField.value.toUpperCase();
-        result = getData(target);
-        console.log(result.length);
-        clearCanvas();
-        outField.innerHTML = result.length + "<br/>";
-        if (result.length <= 100) {
-          for (let i = 0; i < result.length; i++) {
-              if ((result[i][2] > latitudeMax) || (result[i][2] < latitudeMin) ||
-                (result[i][3] > longitudeMax) || (result[i][3] < longitudeMin)) {
-                  continue;
-              }
-              outField.innerHTML += result[i][0] + " (" + result[i][1] + ") "+ result[i][2] + "/" + result[i][3] + "<br/>";
-              if (result[i][0] != target) {
-                plotPlace(result[i][3], result[i][2], "rgb(0, 0, 255)");
-              }
-          }
-          for (let i = 0; i < result.length; i++) {
-              if (result[i][0] == target) {
-                plotPlace(result[i][3], result[i][2], "rgb(255, 0, 0)");
-              }
-          }
+        let gResult = [];
+
+        entryField.addEventListener("input", function() {
+            let target = entryField.value.toUpperCase();
+            result = getData(target);
+            clearCanvas();
+            outField.innerHTML = result.length + "<br/>";
+            if (result.length <= 100) {
+                gResult = [];
+                for (let i = 0; i < result.length; i++) {
+                    if ((result[i][2] > latitudeMax) || (result[i][2] < latitudeMin) ||
+                        (result[i][3] > longitudeMax) || (result[i][3] < longitudeMin)) {
+                        continue;
+                    }
+                    outField.innerHTML += result[i][0] + " (" + result[i][1] + ") "+ result[i][2] + "/" + result[i][3] + "<br/>";
+                    if (result[i][0] != target) {
+                        let coord = plotPlace(result[i][3], result[i][2], "rgb(0, 0, 255)");
+                        gResult.push([result[i][0], result[i][1], coord[0], coord[1]]);
+                    }
+                }
+                for (let i = 0; i < result.length; i++) {
+                    if (result[i][0] == target) {
+                        let coord = plotPlace(result[i][3], result[i][2], "rgb(255, 0, 0)");
+                        gResult.push([result[i][0], result[i][1], coord[0], coord[1]]);
+                    }
+                }
+            }
+        });
+
+
+        document.addEventListener("keydown", function(evt) {
+            let activeElem = document.activeElement;
+            switch (evt.key) {
+                case "Escape" :
+                case "/" :
+                    clearField();
+                    evt.preventDefault();
+                    break;
+                default :
+            }
+        }, false);
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, widthPx, heightPx);
+            ctx.strokeStyle = "rgb(0, 0, 0)";
+            ctx.strokeRect(0, 0, widthPx, heightPx);
         }
-      });
 
-
-    document.addEventListener("keydown", function(evt) {
-      let activeElem = document.activeElement;
-      switch (evt.key) {
-        case "Escape" :
-        case "/" :
-          clearField();
-          evt.preventDefault();
-          break;
-        default :
-      }
-    }, false);
-
-    function clearCanvas() {
-      ctx.clearRect(0, 0, widthPx, heightPx);
-      ctx.strokeStyle = "rgb(0, 0, 0)";
-      ctx.strokeRect(0, 0, widthPx, heightPx);
-    }
-
-    function clearField() {
-      entryField.value = "";
-      clearCanvas();
-      outField.innerHTML = "";
-      entryField.focus();
-    }
+        function clearField() {
+            entryField.value = "";
+            clearCanvas();
+            outField.innerHTML = "";
+            entryField.focus();
+        }
       </script>
     </body>
 </html>
